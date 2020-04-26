@@ -1,5 +1,12 @@
+#!/usr/bin/env ruby
 
 opts, args = ARGV.partition { |a| a[0, 1] == '-' }
+
+if opts.include?('-h') || opts.include?('--help')
+  puts '    ruby flay path/to/file.flac'
+  puts 'OR  ruby flay path/to/dir_of_flac_files/'
+  exit 0
+end
 
 TMP_DIR = '/tmp'
 

@@ -13,20 +13,21 @@ if opts.include?('-h') || opts.include?('--help')
   exit 0
 end
 
+QUEUE = Queue.new
 TMP_DIR = '/tmp'
 
-aucat_id = -1
+#aucat_id = -1
 
 #
 # helper methods
 
-#def monow; Process.clock_gettime(Process::CLOCK_MONOTONIC); end
+def monow; Process.clock_gettime(Process::CLOCK_MONOTONIC); end
 
-def decode(path)
+def decode(path, &block)
   fn1 = File.basename(path, '.flac')
-  out = File.join(TMP_DIR, fn1 + '.wav')
-  system("flac -d #{path} -o #{out} > /dev/null 2>&1")
-  out
+  wav = File.join(TMP_DIR, fn1 + '.wav')
+  system("flac -d #{path} -o #{wav} > /dev/null 2>&1")
+  wav
 end
 
 def prompt(s, ln=false)
@@ -35,18 +36,67 @@ def prompt(s, ln=false)
   print "\n" if ln
 end
 
-def play_wave(path)
-  fn0 = File.basename(path)
-  prompt ">   #{fn0}"
-  aucat_id = fork { system("aucat -i #{path}") }
-  Process.wait2(aucat_id)
+#def play_wave(path)
+#  fn0 = File.basename(path)
+#  prompt ">   #{fn0}"
+#  aucat_id = fork { system("aucat -i #{path}") }
+#  Process.wait2(aucat_id)
+#end
+#
+#def play(i, path)
+#  wav = decode(path)
+#  play_wave(wav)
+#  i + 1
+#ensure
+#  FileUtils.rm(wav, force: true)
+#end
+
+def do_play(com, args, ctx)
+
+  index = args[:index]
+  targets = ctx[:targets]
+
+  index =
+    if index < 0
+      targets.length + index
+    elsif index >= targets.length
+      exit(0) unless ctx[:opts].include?('--loop')
+      0
+    else
+      index
+    end
+
+  path = targets[index]
+  fn = File.basename(path)
+
+  prompt " > #{fn}"
+
+  ctx[:wav] = decode(path)
+
+  pid = ctx[:aucat_pid] = fork { system("aucat -i #{ctx[:wav]}") }
+
+  Thread.new do
+    pid, status = Process.wait2(pid)
+    QUEUE << [ :end, { index: index, pid: pid, status: status } ]
+  end
 end
 
-def play(path)
-  wav = decode(path)
-  play_wave(wav)
-ensure
-  FileUtils.rm(wav, force: true)
+def do_end(com, args, ctx)
+
+  FileUtils.rm(ctx.delete(:wav)) rescue nil
+
+  QUEUE << [ :play, { index: args[:index] + 1 } ]
+end
+
+def work(context)
+
+  loop do
+    com = QUEUE.pop
+puts "---"
+p com
+p context
+    send("do_#{com.first}", *com, context)
+  end
 end
 
 #
@@ -64,7 +114,8 @@ targets = (args.empty? ? [ '.' ] : args)
   .flatten
   .select { |t| t.match(/\.flac$/) }
 
-targets.each do |t|
-  play(t)
-end
+context = { targets: targets }
+QUEUE << [ :play, { index: 0 } ]
+
+Thread.new { work(context) }.join
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'fileutils'
+require 'io/console'
 
 #
 # arg shuffling
@@ -66,14 +67,14 @@ def do_play(com, args, ctx)
       index
     end
 
-  path = targets[index]
-  fn = File.basename(path)
+  path = ctx[:path] = targets[index]
+  fn = ctx[:fname] = File.basename(path)
 
-  prompt " > #{fn}"
+  prompt "  > #{fn}"
 
   ctx[:wav] = decode(path)
 
-  pid = ctx[:aucat_pid] = fork { system("aucat -i #{ctx[:wav]}") }
+  pid = ctx[:aucat_pid] = spawn("aucat -i #{ctx[:wav]}")
 
   Thread.new do
     pid, status = Process.wait2(pid)
@@ -88,13 +89,23 @@ def do_end(com, args, ctx)
   QUEUE << [ :play, { index: args[:index] + 1 } ]
 end
 
+def do_quit(com, args, ctx)
+
+  Process.kill('TERM', ctx[:aucat_pid])
+  FileUtils.rm(ctx.delete(:wav)) rescue nil
+
+  print "  o #{ctx[:fname]}"
+
+  exit 0
+end
+
 def work(context)
 
   loop do
     com = QUEUE.pop
-puts "---"
-p com
-p context
+#puts "---"
+#p com
+#p context
     send("do_#{com.first}", *com, context)
   end
 end
@@ -117,5 +128,11 @@ targets = (args.empty? ? [ '.' ] : args)
 context = { targets: targets }
 QUEUE << [ :play, { index: 0 } ]
 
-Thread.new { work(context) }.join
+Thread.new { work(context) }
+
+loop do
+  case a = STDIN.getch
+  when 'q', "\u0003" then QUEUE << [ :quit, {} ]
+  end
+end
 

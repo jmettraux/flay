@@ -20,8 +20,7 @@ aucat_id = -1
 #
 # helper methods
 
-def monow; Process.clock_gettime(Process::CLOCK_MONOTONIC); end
-
+#def monow; Process.clock_gettime(Process::CLOCK_MONOTONIC); end
 
 def decode(path)
   fn1 = File.basename(path, '.flac')
@@ -53,14 +52,17 @@ end
 #
 # main
 
-target = args[0] || './'
-
-targets =
-  if File.directory?(target)
-    Dir[File.join(target, '*.flac')]
-  else
-    [ target ]
-  end
+targets = (args.empty? ? [ '.' ] : args)
+  .collect { |t|
+    if t.index('*')
+      Dir[t]
+    elsif File.directory?(t)
+      Dir[File.join(t, '**', '*.flac')]
+    else
+      t
+    end }
+  .flatten
+  .select { |t| t.match(/\.flac$/) }
 
 targets.each do |t|
   play(t)

@@ -14,8 +14,10 @@ if opts.include?('-h') || opts.include?('--help')
   exit 0
 end
 
-QUEUE = Queue.new
 TMP_DIR = '/tmp'
+DEVICE_SAMPLE_RATE = 48_000 # default aucat rate
+
+QUEUE = Queue.new
 
 #aucat_id = -1
 
@@ -56,13 +58,21 @@ def play(ctx)
   path = ctx[:path] = ctx[:targets][ctx[:index]]
   fn = ctx[:fname] = File.basename(path)
 
+  pos = (ctx.delete(:position) || 0).to_f * DEVICE_SAMPLE_RATE
+
   prompt "  > #{fn}"
 
   ctx[:wav] = decode(path)
 
-  pid = ctx[:aucat_pid] = spawn("aucat -i #{ctx[:wav]}")
+  t0 = monow
 
-  Thread.new { Process.wait2(pid); QUEUE << :over }
+  pid = ctx[:aucat_pid] = spawn("aucat -g #{pos} -i #{ctx[:wav]}")
+
+  Thread.new do
+    Process.wait2(pid)
+    ctx[:elapsed] = monow - t0
+    QUEUE << :over
+  end
 end
 
 def stop(ctx)
@@ -83,6 +93,8 @@ def do_over(ctx)
 
   if ctx[:index]
     play(ctx)
+  elsif ctx[:position]
+    ctx[:position] = ctx.delete(:elapsed)
   else
     exit 0
   end
@@ -92,6 +104,16 @@ def do_next(ctx)
 
   ctx[:index] += 1
   stop(ctx)
+end
+
+def do_pause_or_play(ctx)
+
+  if ctx[:position]
+    play(ctx)
+  else
+    ctx[:position] = -1
+    stop(ctx)
+  end
 end
 
 def do_exit(ctx)
@@ -135,6 +157,7 @@ loop do
   when 'b' then QUEUE << :back
   when 'n' then QUEUE << :next
   when 'r' then QUEUE << :rewind
+  when 'p', ' ' then QUEUE << :pause_or_play
   end
 end
 

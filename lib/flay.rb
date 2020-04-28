@@ -116,6 +116,12 @@ def do_pause_or_play(ctx)
   end
 end
 
+def do_rewind(ctx)
+
+  ctx[:index] = 0
+  stop(ctx)
+end
+
 def do_exit(ctx)
 
   ctx.delete(:index)

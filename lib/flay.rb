@@ -19,6 +19,8 @@ DEVICE_SAMPLE_RATE = 48_000 # default aucat rate
 
 QUEUE = Queue.new
 
+CL = "\e[D"
+
 #aucat_id = -1
 
 #
@@ -34,7 +36,7 @@ def decode(path, &block)
 end
 
 def prompt(s, ln=false)
-  print s + ("\e[D" * s.length)
+  print s + (CL * s.length)
   print "\n" if ln
 end
 
@@ -120,11 +122,17 @@ def do_exit(ctx)
   stop(ctx)
 end
 
-def work(context)
+def work(ctx)
 
-  loop do
-    send("do_#{QUEUE.pop}", context)
-  end
+  loop { send("do_#{QUEUE.pop}", ctx) }
+
+rescue => err
+
+  stop(ctx) rescue nil
+
+  p err
+  puts (err.backtrace[0, 7] + [ '...' ]).collect { |l| (CL * 80) + l }
+  exit 1
 end
 
 #
@@ -151,7 +159,7 @@ Thread.new { work(targets: targets, opts: opts, index: 0) }
 
 loop do
   case a = STDIN.getch
-  when 'q', "\u0003" then QUEUE << :exit
+  when 'q', "\u0003" then QUEUE << :exit  # q and CTRL-c
   when 'b' then QUEUE << :back
   when 'n' then QUEUE << :next
   when 'r' then QUEUE << :rewind

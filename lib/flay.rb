@@ -130,6 +130,11 @@ def do_rewind(ctx)
   stop(ctx)
 end
 
+def do_again(ctx)
+
+  stop(ctx)
+end
+
 def do_exit(ctx)
 
   ctx.delete(:index)
@@ -177,7 +182,9 @@ loop do
   when 'b' then QUEUE << :back
   when 'n' then QUEUE << :next
   when 'r' then QUEUE << :rewind
+  when 'a' then QUEUE << :again
   when 'p', ' ' then QUEUE << :pause_or_play
+  #else print(a)
   end
 end
 

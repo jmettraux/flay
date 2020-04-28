@@ -16,12 +16,10 @@ end
 
 TMP_DIR = '/tmp'
 DEVICE_SAMPLE_RATE = 48_000 # default aucat rate
+CL = "\e[D" # cursot left
 
 QUEUE = Queue.new
 
-CL = "\e[D"
-
-#aucat_id = -1
 
 #
 # helper methods
@@ -29,9 +27,11 @@ CL = "\e[D"
 def monow; Process.clock_gettime(Process::CLOCK_MONOTONIC); end
 
 def decode(path, &block)
+
   fn1 = File.basename(path, '.flac')
   wav = File.join(TMP_DIR, fn1 + '.wav')
   system("flac -d #{path} -o #{wav} > /dev/null 2>&1")
+
   wav
 end
 
@@ -39,19 +39,6 @@ def prompt(s, ln=false)
   print s + (CL * s.length)
   print "\n" if ln
 end
-
-#def increment(ctx, delta)
-#
-#  tc = ctx[:targets].count
-#  i = i0 = ctx[:index] || 0
-#  i = i + delta
-#  i = i - tc while i > tc
-#  i = i + tc while i < 0
-#
-#  ctx[:index] = index
-#
-#  i0
-#end
 
 def play(ctx)
 

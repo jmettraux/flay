@@ -34,10 +34,8 @@ def decode(path, &block)
 end
 
 def prompt(s, ln=false)
-  #print s
-  #s.length.times { print "\e[D" }
-  #print "\n" if ln
-  puts s
+  print s + ("\e[D" * s.length)
+  print "\n" if ln
 end
 
 #def increment(ctx, delta)
@@ -58,7 +56,7 @@ def play(ctx)
   path = ctx[:path] = ctx[:targets][ctx[:index]]
   fn = ctx[:fname] = File.basename(path)
 
-  pos = (ctx.delete(:position) || 0).to_f * DEVICE_SAMPLE_RATE
+  pos = ((ctx.delete(:position) || 0).to_f * DEVICE_SAMPLE_RATE).to_i
 
   prompt "  > #{fn}"
 
@@ -91,10 +89,10 @@ end
 
 def do_over(ctx)
 
-  if ctx[:index]
-    play(ctx)
-  elsif ctx[:position]
+  if ctx[:position]
     ctx[:position] = ctx.delete(:elapsed)
+  elsif ctx[:index]
+    play(ctx)
   else
     exit 0
   end

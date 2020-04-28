@@ -32,42 +32,28 @@ def decode(path, &block)
 end
 
 def prompt(s, ln=false)
-  print s
-  s.length.times { print "\e[D" }
-  print "\n" if ln
+  #print s
+  #s.length.times { print "\e[D" }
+  #print "\n" if ln
+  puts s
 end
 
-#def play_wave(path)
-#  fn0 = File.basename(path)
-#  prompt ">   #{fn0}"
-#  aucat_id = fork { system("aucat -i #{path}") }
-#  Process.wait2(aucat_id)
-#end
+#def increment(ctx, delta)
 #
-#def play(i, path)
-#  wav = decode(path)
-#  play_wave(wav)
-#  i + 1
-#ensure
-#  FileUtils.rm(wav, force: true)
+#  tc = ctx[:targets].count
+#  i = i0 = ctx[:index] || 0
+#  i = i + delta
+#  i = i - tc while i > tc
+#  i = i + tc while i < 0
+#
+#  ctx[:index] = index
+#
+#  i0
 #end
 
-def do_play(com, args, ctx)
+def play(ctx)
 
-  index = args[:index]
-  targets = ctx[:targets]
-
-  index =
-    if index < 0
-      targets.length + index
-    elsif index >= targets.length
-      exit(0) unless ctx[:opts].include?('--loop')
-      0
-    else
-      index
-    end
-
-  path = ctx[:path] = targets[index]
+  path = ctx[:path] = ctx[:targets][ctx[:index]]
   fn = ctx[:fname] = File.basename(path)
 
   prompt "  > #{fn}"
@@ -76,42 +62,53 @@ def do_play(com, args, ctx)
 
   pid = ctx[:aucat_pid] = spawn("aucat -i #{ctx[:wav]}")
 
-  Thread.new do
-    pid, status = Process.wait2(pid)
-    QUEUE << [ :end, { index: index, pid: pid, status: status } ]
+  Thread.new { Process.wait2(pid); QUEUE << :over }
+end
+
+def stop(ctx)
+
+  pid = ctx[:aucat_pid]
+  (Process.kill('TERM', pid) rescue nil) if pid && pid > 0
+
+  wav = ctx.delete(:wav)
+  FileUtils.rm(wav, force: true) if wav
+
+  ctx[:aucat_pid] = -1
+end
+
+#
+# commands
+
+def do_over(ctx)
+
+  if ctx[:index]
+    play(ctx)
+  else
+    exit 0
   end
 end
 
-def do_end(com, args, ctx)
+def do_next(ctx)
 
-  FileUtils.rm(ctx.delete(:wav)) rescue nil
-
-  QUEUE << [ :play, { index: args[:index] + 1 } ]
+  ctx[:index] += 1
+  stop(ctx)
 end
 
-def do_quit(com, args, ctx)
+def do_exit(ctx)
 
-  Process.kill('TERM', ctx[:aucat_pid])
-  FileUtils.rm(ctx.delete(:wav)) rescue nil
-
-  print "  o #{ctx[:fname]}"
-
-  exit 0
+  ctx.delete(:index)
+  stop(ctx)
 end
 
 def work(context)
 
   loop do
-    com = QUEUE.pop
-#puts "---"
-#p com
-#p context
-    send("do_#{com.first}", *com, context)
+    send("do_#{QUEUE.pop}", context)
   end
 end
 
 #
-# main
+# launch work thread on target list
 
 targets = (args.empty? ? [ '.' ] : args)
   .collect { |t|
@@ -124,15 +121,20 @@ targets = (args.empty? ? [ '.' ] : args)
     end }
   .flatten
   .select { |t| t.match(/\.flac$/) }
+  .sort
 
-context = { targets: targets }
-QUEUE << [ :play, { index: 0 } ]
+QUEUE << :over
+Thread.new { work(targets: targets, opts: opts, index: 0) }
 
-Thread.new { work(context) }
+#
+# command loop
 
 loop do
   case a = STDIN.getch
-  when 'q', "\u0003" then QUEUE << [ :quit, {} ]
+  when 'q', "\u0003" then QUEUE << :exit
+  when 'b' then QUEUE << :back
+  when 'n' then QUEUE << :next
+  when 'r' then QUEUE << :rewind
   end
 end
 

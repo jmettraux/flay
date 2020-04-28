@@ -100,9 +100,17 @@ def do_over(ctx)
   end
 end
 
+def do_back(ctx)
+
+  ctx[:index] -= 1
+  ctx[:index] = ctx[:targets].length - 1 if ctx[:index] < 0
+  stop(ctx)
+end
+
 def do_next(ctx)
 
   ctx[:index] += 1
+  ctx[:index] = 0 if ctx[:index] >= ctx[:targets].length
   stop(ctx)
 end
 

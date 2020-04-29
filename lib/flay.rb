@@ -15,8 +15,9 @@ if opts.include?('-h') || opts.include?('--help')
 end
 
 TMP_DIR = '/tmp'
-DEVICE_SAMPLE_RATE = 48_000 # default aucat rate
 CL = "\e[D" # cursot left
+
+DEVICE_SAMPLE_RATE = 48_000 # default aucat rate
 
 QUEUE = Queue.new
 
@@ -68,15 +69,20 @@ def play(ctx)
   path = ctx[:path] = ctx[:targets][ctx[:index]]
   fn = ctx[:fname] = File.basename(path)
 
-  pos = ((ctx.delete(:position) || 0).to_f * DEVICE_SAMPLE_RATE).to_i
+  pos = (
+    (ctx.delete(:position) || 0).to_f *
+    (ctx[:rate] || DEVICE_SAMPLE_RATE)
+      ).to_i
 
   prompt('>', ctx)
 
   ctx[:wav] = decode(path)
 
-  t0 = monow
+  d = `aucat -d -n -i #{ctx[:wav]} -o /dev/null 2>&1`
+  ctx[:rate] = d.match(/(\d+)Hz/)[1].to_i
 
   pid = ctx[:aucat_pid] = spawn("aucat -g #{pos} -i #{ctx[:wav]}")
+  t0 = monow
 
   Thread.new do
     loop do

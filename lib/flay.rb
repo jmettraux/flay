@@ -155,6 +155,7 @@ end
 
 def do_again(ctx)
 
+  ctx[:next] = ctx[:index]
   stop(ctx)
 end
 

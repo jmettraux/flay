@@ -67,7 +67,7 @@ end
 def play(ctx)
 
   ctx[:index] = ctx[:position] ? ctx[:index] : ctx.delete(:next)
-  path = ctx[:path] = ctx[:targets][ctx[:index]]
+  path = ctx[:path] = ctx[:tracks][ctx[:index]]
   fn = ctx[:fname] = File.basename(path)
 
   pos = (
@@ -126,14 +126,14 @@ end
 def do_back(ctx)
 
   ctx[:next] = (ctx[:index] || 0) - 1
-  ctx[:next] = ctx[:targets].length - 1 if ctx[:next] < 0
+  ctx[:next] = ctx[:tracks].length - 1 if ctx[:next] < 0
   stop(ctx)
 end
 
 def do_next(ctx)
 
   ctx[:next] = (ctx[:index] || 0) + 1
-  ctx[:next] = 0 if ctx[:next] >= ctx[:targets].length
+  ctx[:next] = 0 if ctx[:next] >= ctx[:tracks].length
   stop(ctx)
 end
 
@@ -164,6 +164,9 @@ def do_exit(ctx)
   stop(ctx)
 end
 
+#
+# our work loop
+
 def work(ctx)
 
   loop { send("do_#{QUEUE.pop}", ctx) }
@@ -178,9 +181,9 @@ rescue => err
 end
 
 #
-# launch work thread on target list
+# establish list of tracks
 
-targets = (args.empty? ? [ '.' ] : args)
+tracks = (args.empty? ? [ '.' ] : args)
   .collect { |t|
     if t.index('*')
       Dir[t]
@@ -193,8 +196,11 @@ targets = (args.empty? ? [ '.' ] : args)
   .select { |t| t.match(/\.flac$/) }
   .sort
 
+#
+# launch work thread on target list
+
 QUEUE << :over
-Thread.new { work(targets: targets, opts: opts, next: 0) }
+Thread.new { work(tracks: tracks, opts: opts, next: 0) }
 
 #
 # command loop

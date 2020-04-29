@@ -25,6 +25,7 @@ QUEUE = Queue.new
 # helper methods
 
 def monow; Process.clock_gettime(Process::CLOCK_MONOTONIC); end
+def space(s); s.gsub(/__+/, ' '); end
 
 def decode(path, &block)
 
@@ -35,9 +36,17 @@ def decode(path, &block)
   wav
 end
 
-def prompt(s, ln=false)
-  print s + (CL * s.length)
-  print "\n" if ln
+def prompt(s, ctx)
+  fn = ctx[:fname]
+  if m = fn.match(/^(.+)__(\d+)___*(\d+)m(\d+)s(\d+)__(.+)\.flac$/)
+    artist_and_disk, track, title = space(m[1]), m[2], space(m[6])
+    duration = "#{m[3]}m#{m[4]}s#{m[5]}"
+    print "     #{artist_and_disk}\r\n" if artist_and_disk != ctx[:aad]
+    print "  #{s}  #{track} #{duration} #{title}\r\n"
+    ctx[:aad] = artist_and_disk
+  else
+    puts "  #{s} #{fn}"
+  end
 end
 
 def play(ctx)
@@ -47,7 +56,7 @@ def play(ctx)
 
   pos = ((ctx.delete(:position) || 0).to_f * DEVICE_SAMPLE_RATE).to_i
 
-  prompt "  > #{fn}"
+  prompt('>', ctx)
 
   ctx[:wav] = decode(path)
 
@@ -63,6 +72,8 @@ def play(ctx)
 end
 
 def stop(ctx)
+
+  prompt('o', ctx)
 
   pid = ctx[:aucat_pid]
   (Process.kill('TERM', pid) rescue nil) if pid && pid > 0
@@ -136,8 +147,8 @@ rescue => err
 
   stop(ctx) rescue nil
 
-  p err
-  puts (err.backtrace[0, 7] + [ '...' ]).collect { |l| (CL * 80) + l }
+  print err.inspect + "\r\n"
+  (err.backtrace[0, 7] + [ '...' ]).each { |l| print l + "\r\n" }
   exit 1
 end
 

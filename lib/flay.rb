@@ -36,15 +36,29 @@ def decode(path, &block)
   wav
 end
 
+def elapsed(ctx)
+  ed = (ctx[:elapsed] || 0).to_i
+  s = ed % 60
+  m = (ed / 60).to_i
+  #"#{m}#{s}s"
+  "%3dm%02ds" % [ m, s ]
+end
+
 def prompt(s, ctx)
+
   fn = ctx[:fname]
+
   if m = fn.match(/^(.+)__(\d+)___*(\d+)m(\d+)s(\d+)__(.+)\.flac$/)
+
     artist_and_disk, track, title = space(m[1]), m[2], space(m[6])
     duration = "#{m[3]}m#{m[4]}s#{m[5]}"
+    ed = elapsed(ctx)
     print "     #{artist_and_disk}\r\n" if artist_and_disk != ctx[:aad]
-    print "  #{s}  #{track} #{duration} #{title}\r\n"
+    print "  #{s}  #{track} #{ed} / #{duration} #{title}\r\n"
+
     ctx[:aad] = artist_and_disk
   else
+
     puts "  #{s} #{fn}"
   end
 end
@@ -65,8 +79,12 @@ def play(ctx)
   pid = ctx[:aucat_pid] = spawn("aucat -g #{pos} -i #{ctx[:wav]}")
 
   Thread.new do
-    Process.wait2(pid)
-    ctx[:elapsed] = monow - t0
+    loop do
+      ctx[:elapsed] = monow - t0
+      break if Process.wait2(pid, Process::WNOHANG)
+      sleep 0.42
+      prompt('>', ctx)
+    end
     QUEUE << :over
   end
 end

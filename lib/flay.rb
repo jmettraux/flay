@@ -66,6 +66,7 @@ end
 
 def play(ctx)
 
+  ctx[:index] = ctx[:position] ? ctx[:index] : ctx.delete(:next)
   path = ctx[:path] = ctx[:targets][ctx[:index]]
   fn = ctx[:fname] = File.basename(path)
 
@@ -115,7 +116,7 @@ def do_over(ctx)
 
   if ctx[:position]
     ctx[:position] = ctx.delete(:elapsed)
-  elsif ctx[:index]
+  elsif ctx[:next]
     play(ctx)
   else
     exit 0
@@ -124,15 +125,15 @@ end
 
 def do_back(ctx)
 
-  ctx[:index] -= 1
-  ctx[:index] = ctx[:targets].length - 1 if ctx[:index] < 0
+  ctx[:next] = (ctx[:index] || 0) - 1
+  ctx[:next] = ctx[:targets].length - 1 if ctx[:next] < 0
   stop(ctx)
 end
 
 def do_next(ctx)
 
-  ctx[:index] += 1
-  ctx[:index] = 0 if ctx[:index] >= ctx[:targets].length
+  ctx[:next] = (ctx[:index] || 0) + 1
+  ctx[:next] = 0 if ctx[:next] >= ctx[:targets].length
   stop(ctx)
 end
 
@@ -193,7 +194,7 @@ targets = (args.empty? ? [ '.' ] : args)
   .sort
 
 QUEUE << :over
-Thread.new { work(targets: targets, opts: opts, index: 0) }
+Thread.new { work(targets: targets, opts: opts, next: 0) }
 
 #
 # command loop

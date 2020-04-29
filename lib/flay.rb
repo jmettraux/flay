@@ -28,13 +28,31 @@ QUEUE = Queue.new
 def monow; Process.clock_gettime(Process::CLOCK_MONOTONIC); end
 def space(s); s.gsub(/__+/, ' '); end
 
-def decode(path, &block)
+def wav_info(wav)
 
+  d = `aucat -d -n -i #{wav} -o /dev/null 2>&1`
+
+  size = File.size(wav)
+  m = d.match(/ (alaw|mulaw|s8|u8|[fsu](16|24|32|64)[bl]e),/)
+  format = m[1]
+  depth = (m[2] || 8).to_i
+  rate = d.match(/(\d+)Hz/)[1].to_i
+  channels = 2 # stereo
+
+  duration = size.to_f / (rate * channels * (depth / 8))
+
+  [ rate, duration, size, format, depth ]
+end
+
+def decode(ctx)
+
+  path = ctx[:path]
   fn1 = File.basename(path, '.flac')
-  wav = File.join(TMP_DIR, fn1 + '.wav')
+  wav = ctx[:wav] = File.join(TMP_DIR, fn1 + '.wav')
+
   system("flac -d #{path} -o #{wav} > /dev/null 2>&1")
 
-  wav
+  ctx[:rate], ctx[:duration] = wav_info(wav)
 end
 
 def elapsed(ctx)
@@ -77,10 +95,7 @@ def play(ctx)
 
   prompt('>', ctx)
 
-  ctx[:wav] = decode(path)
-
-  d = `aucat -d -n -i #{ctx[:wav]} -o /dev/null 2>&1`
-  ctx[:rate] = d.match(/(\d+)Hz/)[1].to_i
+  decode(ctx)
 
   pid = ctx[:aucat_pid] = spawn("aucat -g #{pos} -i #{ctx[:wav]}")
   t0 = monow
@@ -159,6 +174,11 @@ def do_again(ctx)
   stop(ctx)
 end
 
+def do_sunset(ctx)
+
+  puts `aucat -d -n -i #{ctx[:wav]} -o /dev/null 2>&1`
+end
+
 def do_exit(ctx)
 
   ctx.delete(:index)
@@ -214,6 +234,7 @@ loop do
   when 'r' then QUEUE << :rewind
   when 'a' then QUEUE << :again
   when 'p', ' ' then QUEUE << :pause_or_play
+  when 'T' then QUEUE << :sunset
   #else print(a)
   end
 end

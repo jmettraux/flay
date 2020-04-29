@@ -15,7 +15,7 @@ if opts.include?('-h') || opts.include?('--help')
 end
 
 TMP_DIR = '/tmp'
-CL = "\e[D" # cursot left
+#CL = "\e[D" # cursot left
 
 DEVICE_SAMPLE_RATE = 48_000 # default aucat rate
 
@@ -63,6 +63,12 @@ def elapsed(ctx)
   "%3dm%02ds" % [ m, s ]
 end
 
+def echoa(as)
+  as.each { |a| print a.is_a?(String) ? a : a.inspect }
+end
+def echon(*as); echoa(as); end
+def echo(*as); echoa(as + [ "\r\n" ]); end
+
 def prompt(s, ctx)
 
   fn = ctx[:fname]
@@ -82,10 +88,22 @@ def prompt(s, ctx)
   end
 end
 
+def determine_next(ctx, dir)
+
+  ctx[:next] = (ctx[:index] || 0) + dir
+
+  if ctx[:next] < 0
+    ctx[:next] = ctx[:tracks].length - 1
+  elsif ctx[:next] >= ctx[:tracks].length
+    ctx[:next] = 0
+  end
+end
+
 def play(ctx)
 
-  ctx[:index] = ctx[:position] ? ctx[:index] : ctx.delete(:next)
-  path = ctx[:path] = ctx[:tracks][ctx[:index]]
+  index = ctx[:index] = ctx[:position] ? ctx[:index] : ctx.delete(:next)
+  determine_next(ctx, 1)
+  path = ctx[:path] = ctx[:tracks][index]
   fn = ctx[:fname] = File.basename(path)
 
   pos = (
@@ -140,15 +158,13 @@ end
 
 def do_back(ctx)
 
-  ctx[:next] = (ctx[:index] || 0) - 1
-  ctx[:next] = ctx[:tracks].length - 1 if ctx[:next] < 0
+  determine_next(ctx, -1)
   stop(ctx)
 end
 
 def do_next(ctx)
 
-  ctx[:next] = (ctx[:index] || 0) + 1
-  ctx[:next] = 0 if ctx[:next] >= ctx[:tracks].length
+  determine_next(ctx, 1)
   stop(ctx)
 end
 
@@ -176,12 +192,39 @@ end
 
 def do_sunset(ctx)
 
-  puts `aucat -d -n -i #{ctx[:wav]} -o /dev/null 2>&1`
+  # TODO
+end
+
+def do_context(ctx)
+
+  echo '{'
+  ctx.each do |k, v|
+    echon "  #{k}: "
+    if k == :tracks
+      echo "(#{v.size} tracks)"
+    else
+      echo v
+    end
+  end
+  echo '}'
+end
+
+def do_tracks(ctx)
+
+  i = ctx[:index]
+  n = ctx[:next]
+
+  ctx[:tracks].each_with_index do |t, j|
+    pre = '    '
+    pre[1] = 'n' if n == j
+    pre[2] = '>' if i == j
+    echo [ '%03d' % j, pre, t ].join('')
+  end
 end
 
 def do_exit(ctx)
 
-  ctx.delete(:index)
+  ctx.delete(:next)
   stop(ctx)
 end
 
@@ -196,8 +239,8 @@ rescue => err
 
   stop(ctx) rescue nil
 
-  print err.inspect + "\r\n"
-  (err.backtrace[0, 7] + [ '...' ]).each { |l| print l + "\r\n" }
+  echo err
+  (err.backtrace[0, 7] + [ '...' ]).each { |l| echo l }
   exit 1
 end
 
@@ -234,7 +277,9 @@ loop do
   when 'r' then QUEUE << :rewind
   when 'a' then QUEUE << :again
   when 'p', ' ' then QUEUE << :pause_or_play
-  when 'T' then QUEUE << :sunset
+  when 'S' then QUEUE << :sunset
+  when 'C' then QUEUE << :context
+  when 'T' then QUEUE << :tracks
   #else print(a)
   end
 end

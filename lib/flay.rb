@@ -179,7 +179,7 @@ end
 
 def do_rewind(ctx)
 
-  ctx[:index] = 0
+  ctx[:next] = 0
   stop(ctx)
 end
 

@@ -15,7 +15,10 @@ if opts.include?('-h') || opts.include?('--help')
 end
 
 TMP_DIR = '/tmp'
-#CL = "\e[D" # cursot left
+CUU = "\e[A" # cursot up
+CUD = "\e[B" # cursot down
+CUL = "\e[D" # cursot left
+CUG = "\e[G" # cursot home
 
 DEVICE_SAMPLE_RATE = 48_000 # default aucat rate
 
@@ -50,6 +53,16 @@ def decode(ctx)
   fn1 = File.basename(path, '.flac')
   wav = ctx[:wav] = File.join(TMP_DIR, fn1 + '.wav')
 
+  ctx[:aad] = '(aad)'
+  ctx[:trackn] = -1
+  ctx[:title] = '(title)'
+    #
+  if m = fn1.match(/^(.+)__(\d+)___*\d+m\d+s\d+__(.+)$/)
+    ctx[:aad] = space(m[1])
+    ctx[:trackn] = m[2].to_i
+    ctx[:title] = space(m[3])
+  end
+
   system("flac -d #{path} -o #{wav} > /dev/null 2>&1")
 
   ctx[:rate], ctx[:duration] = wav_info(wav)
@@ -68,23 +81,31 @@ def echoa(as); as.each { |a| print a.is_a?(String) ? a : a.inspect }; end
 def echon(*as); echoa(as); end
 def echo(*as); echoa(as + [ "\r\n" ]); end
 
-def prompt(s, ctx)
+def prompt(ctx)
 
-  fn = ctx[:fname]
+  cols = ctx[:cols]
 
-  if m = fn.match(/^(.+)__(\d+)___*\d+m\d+s\d+__(.+)\.flac$/)
+  du = s_to_ms(ctx[:duration])
+  ed = s_to_ms(ctx[:elapsed])
 
-    artist_and_disk, track, title = space(m[1]), m[2], space(m[3])
-    du = s_to_ms(ctx[:duration])
-    ed = s_to_ms(ctx[:elapsed])
-    print "     #{artist_and_disk}\r\n" if artist_and_disk != ctx[:aad]
-    print "  #{s}  #{track} #{ed} / #{du} #{title}\r\n"
+  print CUG + CUU
+  print "    %-#{cols - 4}s" % ctx[:aad]
+  print CUG + CUD
+  print "  > %-#{cols - 4}s" % "#{ctx[:trackn]} #{ed} / #{du}  #{ctx[:title]}"
 
-    ctx[:aad] = artist_and_disk
-  else
-
-    puts "  #{s} #{fn}"
-  end
+#  if m = fn.match(/^(.+)__(\d+)___*\d+m\d+s\d+__(.+)\.flac$/)
+#    artist_and_disk, track, title = space(m[1]), m[2], space(m[3])
+#
+#    du = s_to_ms(ctx[:duration])
+#    ed = s_to_ms(ctx[:elapsed])
+#    print "     #{artist_and_disk}\r\n" if artist_and_disk != ctx[:aad]
+#    print "  #{s}  #{track} #{ed} / #{du} #{title}\r\n"
+#
+#    ctx[:aad] = artist_and_disk
+#  else
+#
+#    puts "  #{s} #{fn}"
+#  end
 end
 
 def determine_next(ctx, dir)
@@ -100,6 +121,8 @@ end
 
 def play(ctx)
 
+  ctx[:cols] = (`tput cols`.to_i rescue 80)
+
   index = ctx[:index] = ctx[:position] ? ctx[:index] : ctx.delete(:next)
   determine_next(ctx, 1)
   path = ctx[:path] = ctx[:tracks][index]
@@ -110,7 +133,7 @@ def play(ctx)
     (ctx[:rate] || DEVICE_SAMPLE_RATE)
       ).to_i
 
-  prompt('>', ctx)
+  prompt(ctx)
 
   decode(ctx)
 
@@ -122,7 +145,7 @@ def play(ctx)
       ctx[:elapsed] = monow - t0
       break if Process.wait2(pid, Process::WNOHANG)
       sleep 0.42
-      prompt('>', ctx)
+      prompt(ctx)
     end
     QUEUE << :over
   end
@@ -130,7 +153,7 @@ end
 
 def stop(ctx)
 
-  prompt('o', ctx)
+  prompt(ctx)
 
   pid = ctx[:aucat_pid]
   (Process.kill('TERM', pid) rescue nil) if pid && pid > 0
@@ -206,6 +229,7 @@ def do_context(ctx)
     end
   end
   echo '}'
+  echo
 end
 
 def do_tracks(ctx)
@@ -219,6 +243,7 @@ def do_tracks(ctx)
     pre[2] = '>' if i == j
     echo [ '%03d' % j, pre, t ].join('')
   end
+  echo
 end
 
 def do_exit(ctx)
@@ -261,6 +286,8 @@ tracks = (args.empty? ? [ '.' ] : args)
 
 #
 # launch work thread on target list
+
+echo ''
 
 QUEUE << :over
 Thread.new { work(tracks: tracks, opts: opts, next: 0) }

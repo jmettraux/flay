@@ -55,17 +55,16 @@ def decode(ctx)
   ctx[:rate], ctx[:duration] = wav_info(wav)
 end
 
-def elapsed(ctx)
-  ed = (ctx[:elapsed] || 0).to_i
-  s = ed % 60
-  m = (ed / 60).to_i
-  #"#{m}#{s}s"
-  "%3dm%02ds" % [ m, s ]
+def s_to_ms(n);
+  n = n || 0
+  "%3dm%02ds" % [ (n / 60).to_i, n.to_i % 60 ]
+end
+def s_to_mss(n);
+  n = n || 0
+  "%3dm%02ds%02d" % [ (n / 60).to_i, n.to_i % 60, (n % 1 * 1000).to_i ]
 end
 
-def echoa(as)
-  as.each { |a| print a.is_a?(String) ? a : a.inspect }
-end
+def echoa(as); as.each { |a| print a.is_a?(String) ? a : a.inspect }; end
 def echon(*as); echoa(as); end
 def echo(*as); echoa(as + [ "\r\n" ]); end
 
@@ -73,13 +72,13 @@ def prompt(s, ctx)
 
   fn = ctx[:fname]
 
-  if m = fn.match(/^(.+)__(\d+)___*(\d+)m(\d+)s(\d+)__(.+)\.flac$/)
+  if m = fn.match(/^(.+)__(\d+)___*\d+m\d+s\d+__(.+)\.flac$/)
 
-    artist_and_disk, track, title = space(m[1]), m[2], space(m[6])
-    duration = "#{m[3]}m#{m[4]}s#{m[5]}"
-    ed = elapsed(ctx)
+    artist_and_disk, track, title = space(m[1]), m[2], space(m[3])
+    du = s_to_ms(ctx[:duration])
+    ed = s_to_ms(ctx[:elapsed])
     print "     #{artist_and_disk}\r\n" if artist_and_disk != ctx[:aad]
-    print "  #{s}  #{track} #{ed} / #{duration} #{title}\r\n"
+    print "  #{s}  #{track} #{ed} / #{du} #{title}\r\n"
 
     ctx[:aad] = artist_and_disk
   else

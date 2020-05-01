@@ -62,29 +62,24 @@ end
 
 def decode_mp3(ctx)
 
-  path = ctx[:path]
-  ps = path.split('/')
-  fn = ps.last
-
-  ctx[:aad] = [ ps[-3], ps[-2] ].join(' ')
-  ctx[:trackn] = fn.match(/(\d{1,3})[^\d]/)
-  ctx[:title] = File.basename(fn, '.mp3')
-
-  system("mpg123 -w #{ctx[:wav]} \"#{path}\" > /dev/null 2>&1")
+  system("mpg123 -w #{ctx[:wav]} \"#{ctx[:path]}\" > /dev/null 2>&1")
 end
 
 def decode_m4a(ctx)
 
-  fail NotImplementedError.new("M4A not yet supported")
+  system("faad -o #{ctx[:wav]} \"#{ctx[:path]}\" > /dev/null 2>&1")
 end
+#alias decode_aac decode_m4a
 
 def decode(ctx)
 
   ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}.wav")
 
-  ctx[:aad] = '(aad)'
-  ctx[:trackn] = -1
-  ctx[:title] = '(title)'
+  ps = ctx[:path].split('/')
+  fn = ps.last
+  ctx[:aad] = [ ps[-3], ps[-2] ].join(' ')
+  ctx[:trackn] = fn.match(/(\d{1,3})[^\d]/)
+  ctx[:title] = File.basename(fn, File.extname(fn))
 
   send("decode_#{File.extname(ctx[:path])[1..-1]}", ctx)
 

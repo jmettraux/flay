@@ -17,10 +17,10 @@ if opts.include?('-h') || opts.include?('--help')
 end
 
 TMP_DIR = '/tmp'
-CUU = "\e[A" # cursot up
-CUD = "\e[B" # cursot down
-CUL = "\e[D" # cursot left
-CUG = "\e[G" # cursot home
+CUU = "\e[A" # cursor up
+CUD = "\e[B" # cursor down
+CUL = "\e[D" # cursor left
+CUG = "\e[G" # cursor home
 
 DEVICE_SAMPLE_RATE = 48_000 # default aucat rate
 

@@ -6,7 +6,13 @@ require 'io/console'
 #
 # arg shuffling
 
-opts, args = ARGV.partition { |a| a[0, 1] == '-' }
+args = ARGV.dup
+argrs = []
+while i = args.index('-r')
+  argrs << args.slice!(i, 2)[1]
+end
+
+opts, args = args.partition { |a| a[0, 1] == '-' }
 argis, args = args.partition { |a| a.match(/^\d+$/) }
 argi = argis.collect { |a| a.to_i }.last
 
@@ -22,8 +28,10 @@ CUU = "\e[A" # cursor up
 CUD = "\e[B" # cursor down
 CUL = "\e[D" # cursor left
 CUG = "\e[G" # cursor home
-print "\e[?25l"
-at_exit { print "\e[?25h" }
+CUHIDE = "\e[?25l"
+CUSHOW = "\e[?25h"
+print CUHIDE
+at_exit { print CUSHOW }
   #
   # https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_output_sequences
   #
@@ -295,6 +303,7 @@ tracks = (args.empty? ? [ '.' ] : args)
     end }
   .flatten
   .select { |t| t.match(/\.(flac|mp3|m4a)$/i) }
+  .select { |t| argrs.empty? || argrs.find { |r| File.basename(t).match?(r) } }
   .sort
 
 if tracks.empty?

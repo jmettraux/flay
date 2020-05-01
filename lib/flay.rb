@@ -88,24 +88,14 @@ def prompt(ctx)
   du = s_to_ms(ctx[:duration])
   ed = s_to_ms(ctx[:elapsed])
 
-  print CUG + CUU
-  print "    %-#{cols - 4}s" % ctx[:aad]
-  print CUG + CUD
-  print "  > %-#{cols - 4}s" % "#{ctx[:trackn]} #{ed} / #{du}  #{ctx[:title]}"
-
-#  if m = fn.match(/^(.+)__(\d+)___*\d+m\d+s\d+__(.+)\.flac$/)
-#    artist_and_disk, track, title = space(m[1]), m[2], space(m[3])
-#
-#    du = s_to_ms(ctx[:duration])
-#    ed = s_to_ms(ctx[:elapsed])
-#    print "     #{artist_and_disk}\r\n" if artist_and_disk != ctx[:aad]
-#    print "  #{s}  #{track} #{ed} / #{du} #{title}\r\n"
-#
-#    ctx[:aad] = artist_and_disk
-#  else
-#
-#    puts "  #{s} #{fn}"
-#  end
+  print(CUG + CUU)
+  print(
+    ("    %-#{cols - 4}s" % ctx[:aad]
+      )[0, cols])
+  print(CUG + CUD)
+  print(
+    ("  > %-#{cols - 4}s" % "#{ctx[:trackn]} #{ed} / #{du}  #{ctx[:title]}"
+      )[0, cols - 1])
 end
 
 def determine_next(ctx, dir)

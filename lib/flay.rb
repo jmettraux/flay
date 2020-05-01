@@ -222,11 +222,6 @@ def do_again(ctx)
   stop(ctx)
 end
 
-def do_sunset(ctx)
-
-  # TODO
-end
-
 def do_context(ctx)
 
   echo '{'
@@ -318,7 +313,6 @@ loop do
   when 'r' then QUEUE << :rewind
   when 'a' then QUEUE << :again
   when 'p', ' ' then QUEUE << :pause_or_play
-  when 'S' then QUEUE << :sunset
   when 'C' then QUEUE << :context
   when 'T' then QUEUE << :tracks
   #else print(a)

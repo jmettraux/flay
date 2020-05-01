@@ -7,6 +7,8 @@ require 'io/console'
 # arg shuffling
 
 opts, args = ARGV.partition { |a| a[0, 1] == '-' }
+argis, args = args.partition { |a| a.match(/^\d+$/) }
+argi = argis.collect { |a| a.to_i }.last
 
 if opts.include?('-h') || opts.include?('--help')
   puts '    ruby flay path/to/file.flac'
@@ -303,7 +305,7 @@ end
 echo ''
 
 QUEUE << :over
-Thread.new { work(tracks: tracks, opts: opts, next: 0) }
+Thread.new { work(tracks: tracks, opts: opts, next: argi || 0) }
 
 #
 # command loop

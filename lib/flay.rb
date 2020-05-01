@@ -57,12 +57,20 @@ def decode_flac(ctx)
     ctx[:title] = space(m[3])
   end
 
-  system("flac -d #{path} -o #{ctx[:wav]} > /dev/null 2>&1")
+  system("flac -d \"#{path}\" -o #{ctx[:wav]} > /dev/null 2>&1")
 end
 
 def decode_mp3(ctx)
 
-  fail NotImplementedError.new("MP3 not yet supported")
+  path = ctx[:path]
+  ps = path.split('/')
+  fn = ps.last
+
+  ctx[:aad] = [ ps[-3], ps[-2] ].join(' ')
+  ctx[:trackn] = fn.match(/(\d{1,3})[^\d]/)
+  ctx[:title] = File.basename(fn, '.mp3')
+
+  system("mpg123 -w #{ctx[:wav]} \"#{path}\" > /dev/null 2>&1")
 end
 
 def decode_m4a(ctx)
@@ -281,13 +289,18 @@ tracks = (args.empty? ? [ '.' ] : args)
     if t.index('*')
       Dir[t]
     elsif File.directory?(t)
-      Dir[File.join(t, '**', '*.flac')]
+      Dir[File.join(t, '**', '*.{flac,mp3,m4a}')]
     else
       t
     end }
   .flatten
-  .select { |t| t.match(/\.flac$/) }
+  .select { |t| t.match(/\.(flac|mp3|m4a)$/i) }
   .sort
+
+if tracks.empty?
+  puts 'found no tracks.'
+  exit 1
+end
 
 #
 # launch work thread on target list

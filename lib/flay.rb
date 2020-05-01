@@ -47,23 +47,38 @@ def wav_info(wav)
   [ rate, duration, size, format, depth ]
 end
 
-def decode(ctx)
+def decode_flac(ctx)
 
   path = ctx[:path]
-  fn1 = File.basename(path, '.flac')
-  wav = ctx[:wav] = File.join(TMP_DIR, fn1 + '.wav')
 
-  ctx[:aad] = '(aad)'
-  ctx[:trackn] = -1
-  ctx[:title] = '(title)'
-    #
-  if m = fn1.match(/^(.+)__(\d+)___*\d+m\d+s\d+__(.+)$/)
+  if m = path.match(/^(.+)__(\d+)___*\d+m\d+s\d+__(.+)\.flac$/)
     ctx[:aad] = space(m[1])
     ctx[:trackn] = m[2].to_i
     ctx[:title] = space(m[3])
   end
 
-  system("flac -d #{path} -o #{wav} > /dev/null 2>&1")
+  system("flac -d #{path} -o #{ctx[:wav]} > /dev/null 2>&1")
+end
+
+def decode_mp3(ctx)
+
+  fail NotImplementedError.new("MP3 not yet supported")
+end
+
+def decode_m4a(ctx)
+
+  fail NotImplementedError.new("M4A not yet supported")
+end
+
+def decode(ctx)
+
+  ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}.wav")
+
+  ctx[:aad] = '(aad)'
+  ctx[:trackn] = -1
+  ctx[:title] = '(title)'
+
+  send("decode_#{File.extname(ctx[:path])[1..-1]}", ctx)
 
   ctx[:rate], ctx[:duration] = wav_info(wav)
 end

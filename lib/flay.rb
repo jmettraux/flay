@@ -17,10 +17,18 @@ if opts.include?('-h') || opts.include?('--help')
 end
 
 TMP_DIR = '/tmp'
+
 CUU = "\e[A" # cursor up
 CUD = "\e[B" # cursor down
 CUL = "\e[D" # cursor left
 CUG = "\e[G" # cursor home
+print "\e[?25l"
+at_exit { print "\e[?25h" }
+  #
+  # https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_output_sequences
+  #
+#system('tput civis') # hide cursor
+#system('tput norm')  # show cursor
 
 DEVICE_SAMPLE_RATE = 48_000 # default aucat rate
 
@@ -115,7 +123,7 @@ def prompt(ctx)
   print(CUG + CUD)
   print(
     ("  > %-#{cols - 4}s" % "#{ctx[:trackn]} #{ed} / #{du}  #{ctx[:title]}"
-      )[0, cols - 1])
+      )[0, cols])
 end
 
 def determine_next(ctx, dir)

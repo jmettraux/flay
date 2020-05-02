@@ -109,12 +109,14 @@ end
 
 def s_to_ms(n);
   n = n || 0
-  "%3dm%02ds" % [ (n / 60).to_i, n.to_i % 60 ]
+  na = n.abs
+  d = n < 0 ? 4 : 3
+  "%#{d}dm%02ds" % [ (n / 60).to_i, na.to_i % 60 ]
 end
-def s_to_mss(n);
-  n = n || 0
-  "%3dm%02ds%02d" % [ (n / 60).to_i, n.to_i % 60, (n % 1 * 1000).to_i ]
-end
+#def s_to_mss(n);
+#  n = n || 0
+#  "%3dm%02ds%02d" % [ (n / 60).to_i, n.to_i % 60, (n % 1 * 1000).to_i ]
+#end
 
 def echoa(as); as.each { |a| print a.is_a?(String) ? a : a.inspect }; end
 def echon(*as); echoa(as); end
@@ -128,6 +130,7 @@ def prompt(ctx)
   ed = s_to_ms(ctx[:elapsed])
 
   st = ctx[:position] ? '|' : '>'
+  #rem = s_to_ms(-(ctx[:duration] || 0) - (ctx[:elapsed] || 0))
 
   print(CUG + CUU)
   print(

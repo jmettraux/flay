@@ -9,7 +9,10 @@ require 'io/console'
 args = ARGV.dup
 argrs = []
 while i = args.index('-r')
-  argrs << args.slice!(i, 2)[1]
+  argrs <<
+    Regexp.new(
+      args.slice!(i, 2)[1],
+      Regexp::IGNORECASE)
 end
 
 opts, args = args.partition { |a| a[0, 1] == '-' }

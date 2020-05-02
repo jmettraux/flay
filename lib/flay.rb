@@ -269,6 +269,15 @@ def do_tracks(ctx)
   echo
 end
 
+def do_random(ctx)
+
+  r = File.open('/dev/urandom', 'rb') { |f| f.read(7) }.codepoints
+    .collect(&:to_s).join.to_i
+      # This is OpenBSD!
+  ctx[:next] = r % ctx[:tracks].length
+  stop(ctx)
+end
+
 def do_exit(ctx)
 
   ctx.delete(:next)
@@ -326,14 +335,18 @@ Thread.new { work(tracks: tracks, opts: opts, next: argi || 0) }
 
 loop do
   case a = STDIN.getch
-  when 'q', "\u0003" then QUEUE << :exit  # q and CTRL-c
+
   when 'b' then QUEUE << :back
   when 'n' then QUEUE << :next
   when 'r' then QUEUE << :rewind
   when 'a' then QUEUE << :again
   when 'p', ' ' then QUEUE << :pause_or_play
+  when '@' then QUEUE << :random
+
   when 'C' then QUEUE << :context
   when 'T' then QUEUE << :tracks
+
+  when 'q', "\u0003" then QUEUE << :exit  # q and CTRL-c
   #else print(a)
   end
 end

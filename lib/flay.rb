@@ -157,7 +157,7 @@ def play(ctx)
 
   ctx[:cols] = (`tput cols`.to_i rescue 80)
 
-  index = ctx[:index] = ctx[:position] ? ctx[:index] : ctx.delete(:next)
+  index = ctx[:index] = (ctx[:position] ? ctx[:index] : ctx.delete(:next))
   determine_next(ctx, 1)
   path = ctx[:path] = ctx[:tracks][index]
   fn = ctx[:fname] = File.basename(path)
@@ -190,7 +190,9 @@ def stop(ctx)
   prompt(ctx)
 
   pid = ctx[:aucat_pid]
-  (Process.kill('TERM', pid) rescue nil) if pid && pid > 0
+  exit 0 if pid == nil || pid == -1
+
+  (Process.kill('TERM', pid) rescue nil)
 
   wav = ctx.delete(:wav)
   FileUtils.rm(wav, force: true) if wav

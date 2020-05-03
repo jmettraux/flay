@@ -190,9 +190,8 @@ def stop(ctx)
   prompt(ctx)
 
   pid = ctx[:aucat_pid]
-  exit 0 if pid == nil || pid == -1
 
-  (Process.kill('TERM', pid) rescue nil)
+  (Process.kill('TERM', pid) rescue nil) if pid && pid > 0
 
   wav = ctx.delete(:wav)
   FileUtils.rm(wav, force: true) if wav

@@ -171,7 +171,8 @@ def play(ctx)
 
   decode(ctx)
 
-  pid = ctx[:aucat_pid] = spawn("aucat -g #{pos} -i #{ctx[:wav]}")
+  cmd = ctx[:cmd]= "aucat -g #{pos} -i #{ctx[:wav]}"
+  pid = ctx[:aucat_pid] = spawn(cmd)
   t0 = monow
 
   Thread.new do
@@ -196,7 +197,10 @@ def stop(ctx)
   wav = ctx.delete(:wav)
   FileUtils.rm(wav, force: true) if wav
 
+  ctx.delete(:cmd)
   ctx[:aucat_pid] = -1
+
+  exit 0 unless ctx[:next]
 end
 
 #
@@ -213,6 +217,16 @@ def do_over(ctx)
   end
 end
 
+def do_pause_or_play(ctx)
+
+  if ctx[:position]
+    play(ctx)
+  else
+    ctx[:position] = -1
+    stop(ctx)
+  end
+end
+
 def do_back(ctx)
 
   determine_next(ctx, -1)
@@ -223,16 +237,6 @@ def do_next(ctx)
 
   determine_next(ctx, 1)
   stop(ctx)
-end
-
-def do_pause_or_play(ctx)
-
-  if ctx[:position]
-    play(ctx)
-  else
-    ctx[:position] = -1
-    stop(ctx)
-  end
 end
 
 def do_rewind(ctx)

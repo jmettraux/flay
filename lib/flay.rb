@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'digest'
 require 'fileutils'
 require 'io/console'
 
@@ -98,11 +97,11 @@ def decode(ctx)
   pa = ctx[:path]
   ps = pa.split('/')
   fn = ps.last
-  sha = Digest::SHA256.hexdigest(pa)
+  suf = "i#{ctx[:index].to_s}__#{fn.gsub(/[^a-zA-Z0-9]/, '_')}"
   ctx[:aad] = [ ps[-3], ps[-2] ].join(' ')
   ctx[:trackn] = fn.match(/(\d{1,3})[^\d]/)
   ctx[:title] = File.basename(fn, File.extname(fn))
-  ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}__#{sha}.wav")
+  ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}__#{suf}.wav")
 
   send("decode_#{File.extname(ctx[:path])[1..-1]}", ctx)
 

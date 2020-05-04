@@ -102,7 +102,7 @@ def decode(ctx)
   suf = "i#{ctx[:index].to_s}__#{dpa}__#{fn.gsub(/[^a-zA-Z0-9]/, '_')}"
 
   ctx[:aad] = [ ps[-3], ps[-2] ].join(' ')
-  ctx[:trackn] = (fn.match(/(?!d)(\d{1,3})/) || [ nil, '-1' ])[1]
+  ctx[:trackn] = (fn.match(/(?!d)(\d{1,3})/) || [ nil, '-1' ])[1].to_i
   ctx[:title] = File.basename(fn, File.extname(fn))
   ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}__#{suf}.wav")
 
@@ -136,16 +136,15 @@ def prompt(ctx)
   ix = ctx[:index]
 
   st = ctx[:position] ? '|' : '>'
-  #rem = s_to_ms(-(ctx[:duration] || 0) - (ctx[:elapsed] || 0))
+  re = s_to_ms(-(ctx[:duration] || 0) + (ctx[:elapsed] || 0))
+
+  li = '-' * 40
+  li[((ctx[:elapsed] / ctx[:duration]) * li.size).to_i] = st
 
   print(CUG + CUU)
-  print(
-    ("    %-#{cols - 4}s" % ctx[:aad]
-      )[0, cols])
+  print(("  %-#{cols - 4}s" % ctx[:aad])[0, cols])
   print(CUG + CUD)
-  print(
-    ("  #{st} %-#{cols - 4}s" % "#{ix}  #{ed} / #{du}  #{tn} #{ctx[:title]}"
-      )[0, cols])
+  print("  #{ix} #{ed} #{li} #{re} #{du}  #{tn} #{ctx[:title]}"[0, cols])
 end
 
 def determine_next(ctx, dir)

@@ -128,6 +128,8 @@ def prompt(ctx)
 
   du = s_to_ms(ctx[:duration])
   ed = s_to_ms(ctx[:elapsed])
+  tn = '%02d' % ctx[:trackn]
+  ix = ctx[:index]
 
   st = ctx[:position] ? '|' : '>'
   #rem = s_to_ms(-(ctx[:duration] || 0) - (ctx[:elapsed] || 0))
@@ -138,7 +140,7 @@ def prompt(ctx)
       )[0, cols])
   print(CUG + CUD)
   print(
-    ("  #{st} %-#{cols - 4}s" % "#{ctx[:trackn]} #{ed} / #{du}  #{ctx[:title]}"
+    ("  #{st} %-#{cols - 4}s" % "#{ix}  #{ed} / #{du}  #{tn} #{ctx[:title]}"
       )[0, cols])
 end
 

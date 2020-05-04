@@ -102,7 +102,7 @@ def decode(ctx)
   suf = "i#{ctx[:index].to_s}__#{dpa}__#{fn.gsub(/[^a-zA-Z0-9]/, '_')}"
 
   ctx[:aad] = [ ps[-3], ps[-2] ].join(' ')
-  ctx[:trackn] = fn.match(/(\d{1,3})[^\d]/)
+  ctx[:trackn] = (fn.match(/(?!d)(\d{1,3})/) || [ nil, '-1' ])[1]
   ctx[:title] = File.basename(fn, File.extname(fn))
   ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}__#{suf}.wav")
 

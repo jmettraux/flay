@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'digest'
 require 'fileutils'
 require 'io/console'
 
@@ -97,7 +98,9 @@ def decode(ctx)
   pa = ctx[:path]
   ps = pa.split('/')
   fn = ps.last
-  suf = "i#{ctx[:index].to_s}__#{fn.gsub(/[^a-zA-Z0-9]/, '_')}"
+  dpa = Digest::SHA256.hexdigest(ps[0..-2].join('/'))[0, 14]
+  suf = "i#{ctx[:index].to_s}__#{dpa}__#{fn.gsub(/[^a-zA-Z0-9]/, '_')}"
+
   ctx[:aad] = [ ps[-3], ps[-2] ].join(' ')
   ctx[:trackn] = fn.match(/(\d{1,3})[^\d]/)
   ctx[:title] = File.basename(fn, File.extname(fn))

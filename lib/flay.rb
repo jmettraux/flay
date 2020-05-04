@@ -162,22 +162,18 @@ def play(ctx)
   path = ctx[:path] = ctx[:tracks][index]
   fn = ctx[:fname] = File.basename(path)
 
-  pos = (
-    (ctx.delete(:position) || 0).to_f *
-    (ctx[:rate] || DEVICE_SAMPLE_RATE)
-      ).to_i
-
-  prompt(ctx)
+  pos = (ctx.delete(:position) || 0).to_f
+  g = (pos * (ctx[:rate] || DEVICE_SAMPLE_RATE)).to_i
 
   decode(ctx)
 
-  cmd = ctx[:cmd]= "aucat -g #{pos} -i #{ctx[:wav]}"
+  cmd = ctx[:cmd]= "aucat -g #{g} -i #{ctx[:wav]}"
   pid = ctx[:aucat_pid] = spawn(cmd)
   t0 = monow
 
   Thread.new do
     loop do
-      ctx[:elapsed] = monow - t0
+      ctx[:elapsed] = pos + monow - t0
       break if Process.wait2(pid, Process::WNOHANG)
       sleep 0.42
       prompt(ctx)
@@ -187,8 +183,6 @@ def play(ctx)
 end
 
 def stop(ctx)
-
-  prompt(ctx)
 
   pid = ctx[:aucat_pid]
 

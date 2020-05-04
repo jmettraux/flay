@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'digest'
 require 'fileutils'
 require 'io/console'
 
@@ -94,13 +95,14 @@ end
 
 def decode(ctx)
 
-  ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}.wav")
-
-  ps = ctx[:path].split('/')
+  pa = ctx[:path]
+  ps = pa.split('/')
   fn = ps.last
+  sha = Digest::SHA256.hexdigest(pa)
   ctx[:aad] = [ ps[-3], ps[-2] ].join(' ')
   ctx[:trackn] = fn.match(/(\d{1,3})[^\d]/)
   ctx[:title] = File.basename(fn, File.extname(fn))
+  ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}__#{sha}.wav")
 
   send("decode_#{File.extname(ctx[:path])[1..-1]}", ctx)
 
@@ -190,9 +192,11 @@ def stop(ctx)
 
   (Process.kill('TERM', pid) rescue nil) if pid && pid > 0
 
-  wav = ctx.delete(:wav)
-  FileUtils.rm(wav, force: true) if wav
+  FileUtils.rm(
+    Dir[File.join(TMP_DIR, "flay__#{Process.pid}__*.wav")],
+    force: true)
 
+  ctx.delete(:wav)
   ctx.delete(:cmd)
   ctx[:aucat_pid] = -1
 

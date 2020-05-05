@@ -145,7 +145,12 @@ def prompt(ctx)
   re = s_to_ms(-(ctx[:duration] || 0) + (ctx[:elapsed] || 0))
 
   li = '-' * 40
-  li[((ctx[:elapsed] / ctx[:duration]) * li.size).to_i] = st
+  x = ((ctx[:elapsed] / ctx[:duration]) * li.size).to_i
+  if x < li.size
+    li[x] = st
+  else
+    li[-1] = '?' # happened with a Dan Carlin mp3... :-(
+  end
 
   print(CUG + CUU)
   print(("  %-#{cols - 2}s" %

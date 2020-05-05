@@ -79,15 +79,21 @@ def decode_flac(ctx)
     ctx[:title] = space(m[3])
   end
 
+  return if File.exist?(ctx[:wav])
+
   system("flac -d \"#{path}\" -o #{ctx[:wav]} > /dev/null 2>&1")
 end
 
 def decode_mp3(ctx)
 
+  return if File.exist?(ctx[:wav])
+
   system("mpg123 -w #{ctx[:wav]} \"#{ctx[:path]}\" > /dev/null 2>&1")
 end
 
 def decode_m4a(ctx)
+
+  return if File.exist?(ctx[:wav])
 
   system("faad -o #{ctx[:wav]} \"#{ctx[:path]}\" > /dev/null 2>&1")
 end
@@ -196,10 +202,6 @@ def stop(ctx)
   pid = ctx[:aucat_pid]
 
   (Process.kill('TERM', pid) rescue nil) if pid && pid > 0
-
-  FileUtils.rm(
-    Dir[File.join(TMP_DIR, "flay__#{Process.pid}__*.wav")],
-    force: true)
 
   ctx.delete(:wav)
   ctx.delete(:cmd)
@@ -345,6 +347,14 @@ echo ''
 
 QUEUE << :over
 Thread.new { work(tracks: tracks, opts: opts, next: argi || 0) }
+
+
+at_exit do
+
+  FileUtils.rm(
+    Dir[File.join(TMP_DIR, "flay__#{Process.pid}__*.wav")],
+    force: true)
+end
 
 #
 # command loop

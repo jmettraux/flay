@@ -142,9 +142,13 @@ def prompt(ctx)
   li[((ctx[:elapsed] / ctx[:duration]) * li.size).to_i] = st
 
   print(CUG + CUU)
-  print(("  %-#{cols - 4}s" % ctx[:aad])[0, cols])
+  print(("  %-#{cols - 2}s" %
+    ctx[:aad]
+      )[0, cols])
   print(CUG + CUD)
-  print("  #{ix} #{ed} #{li} #{re} #{du}  #{tn} #{ctx[:title]}"[0, cols])
+  print(("  %-#{cols - 2}s" %
+    "#{ix} #{ed} #{li} #{re} #{du}  #{tn} #{ctx[:title]}"[0, cols - 2]
+      )[0, cols])
 end
 
 def determine_next(ctx, dir)

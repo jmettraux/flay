@@ -144,7 +144,7 @@ def prompt(ctx)
   st = ctx[:position] ? '|' : '>'
   re = s_to_ms(-(ctx[:duration] || 0) + (ctx[:elapsed] || 0))
 
-  li = '-' * 40
+  li = '-' * (cols / 3.5)
   x = ((ctx[:elapsed] / ctx[:duration]) * li.size).to_i
   if x < li.size
     li[x] = st

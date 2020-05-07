@@ -26,6 +26,8 @@ if opts.include?('-h') || opts.include?('--help')
   exit 0
 end
 
+shuffle = opts.include?('-s') || opts.include?('--shuffle')
+
 TMP_DIR = '/tmp'
 
 CUU = "\e[A" # cursor up
@@ -162,14 +164,29 @@ def prompt(ctx)
       )[0, cols])
 end
 
+def determine_random_next(ctx)
+
+  r = File.open('/dev/urandom', 'rb') { |f| f.read(7) }.codepoints
+    .collect(&:to_s).join.to_i
+      # This is OpenBSD!
+
+  r % ctx[:tracks].length
+end
+
 def determine_next(ctx, dir)
 
-  ctx[:next] = (ctx[:index] || 0) + dir
+  if ctx[:shuffle] && dir == 1
 
-  if ctx[:next] < 0
-    ctx[:next] = ctx[:tracks].length - 1
-  elsif ctx[:next] >= ctx[:tracks].length
-    ctx[:next] = 0
+    ctx[:next] = determine_random_next(ctx)
+  else
+
+    ctx[:next] = (ctx[:index] || 0) + dir
+
+    if ctx[:next] < 0
+      ctx[:next] = ctx[:tracks].length - 1
+    elsif ctx[:next] >= ctx[:tracks].length
+      ctx[:next] = 0
+    end
   end
 end
 
@@ -178,7 +195,9 @@ def play(ctx)
   ctx[:cols] = (`tput cols`.to_i rescue 80)
 
   index = ctx[:index] = (ctx[:position] ? ctx[:index] : ctx.delete(:next))
+
   determine_next(ctx, 1)
+
   path = ctx[:path] = ctx[:tracks][index]
   fn = ctx[:fname] = File.basename(path)
 
@@ -294,11 +313,13 @@ end
 
 def do_random(ctx)
 
-  r = File.open('/dev/urandom', 'rb') { |f| f.read(7) }.codepoints
-    .collect(&:to_s).join.to_i
-      # This is OpenBSD!
-  ctx[:next] = r % ctx[:tracks].length
+  ctx[:next] = determine_random_next(ctx)
   stop(ctx)
+end
+
+def do_shuffle(ctx)
+
+  ctx[:shuffle] = ! ctx[:shuffle]
 end
 
 def do_exit(ctx)
@@ -348,10 +369,13 @@ end
 #
 # launch work thread on target list
 
+ctx = { tracks: tracks, opts: opts, shuffle: shuffle }
+ctx[:next] = argi || (shuffle && determine_random_next(ctx)) || 0
+
 echo ''
 
 QUEUE << :over
-Thread.new { work(tracks: tracks, opts: opts, next: argi || 0) }
+Thread.new { work(ctx) }
 
 
 at_exit do
@@ -372,7 +396,9 @@ loop do
   when 'r' then QUEUE << :rewind
   when 'a' then QUEUE << :again
   when 'p', ' ' then QUEUE << :pause_or_play
+
   when '@' then QUEUE << :random
+  when 'S' then QUEUE << :shuffle
 
   when 'C' then QUEUE << :context
   when 'T' then QUEUE << :tracks

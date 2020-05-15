@@ -54,6 +54,7 @@ QUEUE = Queue.new
 
 def monow; Process.clock_gettime(Process::CLOCK_MONOTONIC); end
 def space(s); s.gsub(/__+/, ' '); end
+def space2(s); s.gsub(/__*/, ' '); end
 
 def wav_info(wav)
 
@@ -76,9 +77,8 @@ def decode_flac(ctx)
   path = ctx[:path]
 
   if m = path.match(/^(.+)__(\d+)___*\d+m\d+s\d+__(.+)\.flac$/)
-    ctx[:aad] = space(m[1])
     ctx[:trackn] = m[2].to_i
-    ctx[:title] = space(m[3])
+    ctx[:title] = space2(m[3])
   end
 
   return if File.exist?(ctx[:wav])
@@ -109,7 +109,7 @@ def decode(ctx)
   dpa = Digest::SHA256.hexdigest(ps[0..-2].join('/'))[0, 14]
   suf = "i#{ctx[:index].to_s}__#{dpa}__#{fn.gsub(/[^a-zA-Z0-9]/, '_')}"
 
-  ctx[:aad] = [ ps[-3], ps[-2] ].join(' ')
+  ctx[:aad] = [ space2(ps[-3]), space2(ps[-2]) ].join(' / ')
   ctx[:trackn] = (fn.match(/(?!d)(\d{1,3})/) || [ nil, '-1' ])[1].to_i
   ctx[:title] = File.basename(fn, File.extname(fn))
   ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}__#{suf}.wav")
@@ -160,7 +160,7 @@ def prompt(ctx)
       )[0, cols])
   print(CUG + CUD)
   print(("  %-#{cols - 2}s" %
-    "#{ix} #{ed} #{li} #{re} #{du}  #{tn} #{ctx[:title]}"[0, cols - 2]
+    "#{ix} #{ed} #{li} #{re} #{du}  #{tn} - #{ctx[:title]}"[0, cols - 2]
       )[0, cols])
 end
 

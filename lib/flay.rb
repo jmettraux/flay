@@ -74,16 +74,9 @@ end
 
 def decode_flac(ctx)
 
-  path = ctx[:path]
-
-  if m = path.match(/^(.+)__(\d+)___*\d+m\d+s\d+__(.+)\.flac$/)
-    ctx[:trackn] = m[2].to_i
-    ctx[:title] = space2(m[3])
-  end
-
   return if File.exist?(ctx[:wav])
 
-  system("flac -d \"#{path}\" -o #{ctx[:wav]} > /dev/null 2>&1")
+  system("flac -d \"#{ctx[:path]}\" -o #{ctx[:wav]} > /dev/null 2>&1")
 end
 
 def decode_mp3(ctx)
@@ -101,6 +94,25 @@ def decode_m4a(ctx)
 end
 #alias decode_aac decode_m4a
 
+def decode_info(ctx)
+
+  pai = Dir[File.join(File.dirname(ctx[:path]), '*__info.txt')].first
+  return nil unless pai
+
+  lines = File.readlines(pai)
+  r = {}
+
+  r[:artist], r[:disk] = lines[0].split('/').collect(&:strip)
+
+  lines[2..-1].each do |line|
+    tn, du, ti = line.strip.split(/\s+/, 3)
+    tn = tn.to_i
+    r[tn.to_i] = { trackn: tn, duration: du, title: ti }
+  end
+
+  r
+end
+
 def decode(ctx)
 
   pa = ctx[:path]
@@ -110,9 +122,14 @@ def decode(ctx)
   suf = "i#{ctx[:index].to_s}__#{dpa}__#{fn.gsub(/[^a-zA-Z0-9]/, '_')}"
   wfn = "flay__#{Process.pid}__#{suf}"[0, 251] + '.wav'
 
-  ctx[:aad] = [ space2(ps[-3]), space2(ps[-2]) ].join(' / ')
   ctx[:trackn] = (fn.match(/(?!d)(\d{1,3})/) || [ nil, '-1' ])[1].to_i
-  ctx[:title] = File.basename(fn, File.extname(fn))
+  if di = decode_info(ctx)
+    ctx[:aad] = [ di[:artist], di[:disk] ].join(' / ')
+    ctx[:title] = di[ctx[:trackn]][:title] || '(no title in dbinfo)'
+  else
+    ctx[:aad] = [ space2(ps[-3]), space2(ps[-2]) ].join(' / ')
+    ctx[:title] = File.basename(fn, File.extname(fn))
+  end
   ctx[:wav] = wav = File.join(TMP_DIR, wfn)
 
   send("decode_#{File.extname(ctx[:path])[1..-1]}", ctx)

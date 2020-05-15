@@ -106,13 +106,14 @@ def decode(ctx)
   pa = ctx[:path]
   ps = pa.split('/')
   fn = ps.last
-  dpa = Digest::SHA256.hexdigest(ps[0..-2].join('/'))[0, 14]
+  dpa = Digest::SHA256.hexdigest(pa)[0, 14]
   suf = "i#{ctx[:index].to_s}__#{dpa}__#{fn.gsub(/[^a-zA-Z0-9]/, '_')}"
+  wfn = "flay__#{Process.pid}__#{suf}"[0, 251] + '.wav'
 
   ctx[:aad] = [ space2(ps[-3]), space2(ps[-2]) ].join(' / ')
   ctx[:trackn] = (fn.match(/(?!d)(\d{1,3})/) || [ nil, '-1' ])[1].to_i
   ctx[:title] = File.basename(fn, File.extname(fn))
-  ctx[:wav] = wav = File.join(TMP_DIR, "flay__#{Process.pid}__#{suf}.wav")
+  ctx[:wav] = wav = File.join(TMP_DIR, wfn)
 
   send("decode_#{File.extname(ctx[:path])[1..-1]}", ctx)
 

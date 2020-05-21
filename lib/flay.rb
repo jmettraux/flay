@@ -122,8 +122,10 @@ def decode(ctx)
   suf = "i#{ctx[:index].to_s}__#{dpa}__#{fn.gsub(/[^a-zA-Z0-9]/, '_')}"
   wfn = "flay__#{Process.pid}__#{suf}"[0, 251] + '.wav'
 
-  ctx[:trackn] = (fn.match(/(?!d)(\d{1,3})/) || [ nil, '-1' ])[1].to_i
+  ctx[:trackn] =
+    (fn.match(/__(\d{1,3})_{2,3}\d{1,2}m\d/) || [ nil, '-1' ])[1].to_i
   if di = decode_info(ctx)
+    tn = ctx[:trackn]; tn = di.size if tn == -1
     ctx[:aad] = [ di[:artist], di[:disk] ].join(' / ')
     ctx[:title] = di[ctx[:trackn]][:title] || '(no title in dbinfo)'
   else

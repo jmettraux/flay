@@ -129,7 +129,7 @@ def decode(ctx)
     ctx[:aad] = [ di[:artist], di[:disk] ].join(' / ')
     ctx[:title] = di[ctx[:trackn]][:title] || '(no title in dbinfo)'
   else
-    ctx[:aad] = [ space2(ps[-3]), space2(ps[-2]) ].join(' / ')
+    ctx[:aad] = ps[0..-2].collect { |e| space2(e) }.join(' / ')
     ctx[:title] = File.basename(fn, File.extname(fn))
   end
   ctx[:wav] = wav = File.join(TMP_DIR, wfn)

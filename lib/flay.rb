@@ -259,7 +259,22 @@ end
 
 def do_over(ctx)
 
-  if ctx[:position]
+  if ctx[:position] == :Fskip
+    e = ctx.delete(:elapsed) || 0
+    ctx[:position] = e + (ctx[:duration] - e) / 2
+    play(ctx)
+  elsif ctx[:position] == :Bskip
+    ctx[:position] = (ctx.delete(:elapsed) || 0) / 2
+    play(ctx)
+  elsif ctx[:position] == :fskip
+    e = ctx.delete(:elapsed) || 0
+    ctx[:position] = [ e + 10, ctx[:duration] ].min
+    play(ctx)
+  elsif ctx[:position] == :bskip
+    e = ctx.delete(:elapsed)
+    ctx[:position] = [ 0, e - 10 ].max
+    play(ctx)
+  elsif ctx[:position]
     ctx[:position] = ctx.delete(:elapsed)
   elsif ctx[:next]
     play(ctx)
@@ -316,6 +331,11 @@ def do_context(ctx)
   echo '}'
   echo
 end
+
+def do_bskip(ctx); ctx[:position] = :bskip; stop(ctx); end
+def do_fskip(ctx); ctx[:position] = :fskip; stop(ctx); end
+def do_Bskip(ctx); ctx[:position] = :Bskip; stop(ctx); end
+def do_Fskip(ctx); ctx[:position] = :Fskip; stop(ctx); end
 
 def do_tracks(ctx)
 
@@ -421,6 +441,13 @@ loop do
   when 'S' then QUEUE << :shuffle
 
   when 'C' then QUEUE << :context
+  when 'T' then QUEUE << :tracks
+
+  when ',' then QUEUE << :bskip
+  when '.' then QUEUE << :fskip
+  when '<' then QUEUE << :Bskip
+  when '>' then QUEUE << :Fskip
+
   when 'T' then QUEUE << :tracks
 
   when 'q', "\u0003" then QUEUE << :exit  # q and CTRL-c

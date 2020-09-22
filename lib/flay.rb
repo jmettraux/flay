@@ -259,22 +259,28 @@ end
 
 def do_over(ctx)
 
-  if ctx[:position] == :Fskip
+  po = ctx[:position]
+
+  if po.is_a?(String) && po.match?(/\Ap\d\z/)
+    ctx.delete(:elapsed)
+    ctx[:position] = ctx[:duration] * po[1, 1].to_i / 10
+    play(ctx)
+  elsif po == :Fskip
     e = ctx.delete(:elapsed) || 0
     ctx[:position] = e + (ctx[:duration] - e) / 2
     play(ctx)
-  elsif ctx[:position] == :Bskip
+  elsif po == :Bskip
     ctx[:position] = (ctx.delete(:elapsed) || 0) / 2
     play(ctx)
-  elsif ctx[:position] == :fskip
+  elsif po == :fskip
     e = ctx.delete(:elapsed) || 0
     ctx[:position] = [ e + 10, ctx[:duration] ].min
     play(ctx)
-  elsif ctx[:position] == :bskip
+  elsif po == :bskip
     e = ctx.delete(:elapsed)
-    ctx[:position] = [ 0, e - 10 ].max
+    ctx[:position] = [ 0, e - 10 - 1 ].max
     play(ctx)
-  elsif ctx[:position]
+  elsif po
     ctx[:position] = ctx.delete(:elapsed)
   elsif ctx[:next]
     play(ctx)
@@ -332,10 +338,12 @@ def do_context(ctx)
   echo
 end
 
-def do_bskip(ctx); ctx[:position] = :bskip; stop(ctx); end
-def do_fskip(ctx); ctx[:position] = :fskip; stop(ctx); end
-def do_Bskip(ctx); ctx[:position] = :Bskip; stop(ctx); end
-def do_Fskip(ctx); ctx[:position] = :Fskip; stop(ctx); end
+[ :bskip, :fskip, :Bskip, :Fskip ].each do |s|
+  define_method("do_#{s}") { |ctx| ctx[:position] = s; stop(ctx) }
+end
+(0..9).each do |i|
+  define_method("do_pskip#{i}") { |ctx| ctx[:position] = "p#{i}"; stop(ctx) }
+end
 
 def do_tracks(ctx)
 
@@ -449,6 +457,8 @@ loop do
   when '>' then QUEUE << :Fskip
 
   when 'T' then QUEUE << :tracks
+
+  when /[0-9]/ then QUEUE << "pskip#{a}".to_sym
 
   when 'q', "\u0003" then QUEUE << :exit  # q and CTRL-c
   #else print(a)
